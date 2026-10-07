@@ -20,7 +20,7 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-      - run: npm run build
+      - run: npm run buidl
         env:
           SITE_API_URL: ${{ vars.SITE_API_URL }}
           TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
