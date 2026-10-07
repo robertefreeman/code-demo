@@ -165,7 +165,7 @@ export default {
         body: JSON.stringify({
           model: env.OPENAI_MODEL,
           stream: false,
-          max_tokens: 6000,
+          max_tokens: 16000,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: body.prompt.trim() },

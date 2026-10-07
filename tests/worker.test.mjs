@@ -57,6 +57,7 @@ test("generates art using a verified token and server-side credentials", async (
   assert.equal(payload.model, "demo-model");
   assert.equal(payload.messages[1].content, "Blue circle");
   assert.equal(payload.stream, false);
+  assert.equal(payload.max_tokens, 16000);
 });
 
 test("allows preflight only for the configured origin", async () => {
