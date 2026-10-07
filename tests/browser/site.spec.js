@@ -17,8 +17,8 @@ async function configure(page) {
 
 test("unconfigured site shows an honest setup state", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("SVG Studio");
-  await expect(page.locator(".wordmark")).toHaveText("SVG Studio / code-demo");
+  await expect(page).toHaveTitle("Robert's SVG Studio");
+  await expect(page.locator(".wordmark")).toHaveText("Robert's SVG Studio / code-demo");
   await expect(page.locator("#status")).toContainText("isn't configured yet");
   await expect(page.locator("#generate")).toBeDisabled();
   await expect(page.locator("#art")).toBeVisible();
