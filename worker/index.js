@@ -17,6 +17,15 @@ class HttpError extends Error {
   }
 }
 
+function configuredModels(env) {
+  if (typeof env.OPENAI_MODEL !== "string" || !env.OPENAI_MODEL.trim()) {
+    throw new HttpError(503, "Generation is not configured yet. Contact the site owner.");
+  }
+  return [...new Set([env.OPENAI_MODEL, env.OPENAI_MODEL_2]
+    .filter(model => typeof model === "string" && model.trim())
+    .map(model => model.trim()))];
+}
+
 export function extractSvg(source) {
   if (typeof source !== "string") throw new HttpError(502, "The AI returned no artwork. Try generating again.");
   if (source.length > 100_000 || /<!DOCTYPE|<!ENTITY|<\?/i.test(source)) {
@@ -106,15 +115,21 @@ export default {
     if (!env.ALLOWED_ORIGIN) return json({ error: "Generation is not configured yet." }, 503);
     if (origin !== env.ALLOWED_ORIGIN) return json({ error: "This origin is not allowed." }, 403);
     headers["Access-Control-Allow-Origin"] = env.ALLOWED_ORIGIN;
-    if (new URL(request.url).pathname !== "/generate") return json({ error: "Not found." }, 404);
+    const path = new URL(request.url).pathname;
+    if (path !== "/generate" && path !== "/models") return json({ error: "Not found." }, 404);
+    const method = path === "/models" ? "GET" : "POST";
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: { ...headers, "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type" },
+        headers: { ...headers, "Access-Control-Allow-Methods": method, "Access-Control-Allow-Headers": "Content-Type" },
       });
     }
-    if (request.method !== "POST") return json({ error: "Use POST to generate art." }, 405, { Allow: "POST, OPTIONS" });
+    if (request.method !== method) {
+      return json({ error: path === "/models" ? "Use GET to list models." : "Use POST to generate art." }, 405, { Allow: `${method}, OPTIONS` });
+    }
     try {
+      const models = configuredModels(env);
+      if (path === "/models") return json({ models });
       for (const key of ["OPENAI_BASE_URL", "OPENAI_MODEL", "OPENAI_API_KEY", "TURNSTILE_SECRET_KEY", "PER_IP_LIMITER", "SITE_LIMITER"]) {
         if (!env[key]) throw new HttpError(503, "Generation is not configured yet. Contact the site owner.");
       }
@@ -138,6 +153,10 @@ export default {
       }
       if (typeof body.token !== "string" || !body.token || body.token.length > 2048) {
         throw new HttpError(400, "Complete the bot check and try again.");
+      }
+      const model = body.model === undefined ? models[0] : body.model;
+      if (!models.includes(model)) {
+        throw new HttpError(400, "Choose an available model. Reload the page if the model list has changed.");
       }
       const verification = await fetchJson("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
         method: "POST",
@@ -163,7 +182,7 @@ export default {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.OPENAI_API_KEY}` },
         body: JSON.stringify({
-          model: env.OPENAI_MODEL,
+          model,
           stream: false,
           max_tokens: 16000,
           messages: [

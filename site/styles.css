@@ -11,8 +11,8 @@
 * { box-sizing: border-box; }
 body { margin: 0; }
 a { color: inherit; text-underline-offset: 4px; }
-button, textarea { font: inherit; }
-button, a, textarea { -webkit-tap-highlight-color: transparent; }
+button, textarea, select { font: inherit; }
+button, a, textarea, select { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 [hidden] { display: none !important; }
 .site-header, main, footer { width: min(1180px, calc(100% - 80px)); margin-inline: auto; }
@@ -27,6 +27,9 @@ h1 { font-size: clamp(34px, 4vw, 50px); line-height: 1.08; letter-spacing: -0.03
 label { display: block; font-size: 14px; font-weight: 650; margin-bottom: 10px; }
 textarea { display: block; width: 100%; min-height: 150px; padding: 16px; resize: vertical; border: 1px solid #9aadb9; border-radius: 8px; color: inherit; background: white; line-height: 1.6; }
 textarea::placeholder { color: #607382; opacity: 1; }
+select { display: block; width: 100%; min-width: 0; min-height: 48px; padding: 12px; margin-bottom: 18px; border: 1px solid #9aadb9; border-radius: 8px; color: inherit; background: white; }
+select:hover:not(:disabled) { border-color: var(--accent); }
+select:disabled { background: #dbe3eb; color: #536576; cursor: not-allowed; }
 .hint { font-size: 13px; color: var(--muted); margin: 10px 0 18px; }
 #verification { max-width: 100%; margin-top: 16px; }
 .primary-button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 50px; padding: 12px 18px; border: 0; border-radius: 8px; background: var(--accent); color: white; font-weight: 650; cursor: pointer; }

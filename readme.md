@@ -25,6 +25,7 @@ and a setup message rather than pretending to generate art.
    | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
    | `OPENAI_BASE_URL` | HTTPS API base, e.g. `https://llm.example.com/v1` |
    | `OPENAI_MODEL` | Exact model ID supported by your host |
+   | `OPENAI_MODEL_2` | Optional second model ID supported by the same host and API key |
    | `OPENAI_API_KEY` | Your private LLM API key |
    | `TURNSTILE_SECRET_KEY` | Private Turnstile verification key |
 
@@ -53,8 +54,20 @@ The host must be reachable from Cloudflare over HTTPS. Requests go to
 `messages`, `stream: false`, and `max_tokens: 16000`. The response must contain
 SVG text in `choices[0].message.content`. It is not a file-upload endpoint;
 models using a different protocol will need a small adapter.
-The configured model must support this token budget. Larger generations can
+Both configured models must support this token budget. Larger generations can
 cost more; the existing timeouts and SVG size and element limits still apply.
+
+The **Model** dropdown shows the configured model IDs, with `OPENAI_MODEL`
+selected by default. Add `OPENAI_MODEL_2` and rerun **Deploy API** to enable the
+second choice; no site rebuild is needed to refresh the list. Model names are
+public in the dropdown and the Worker's `/models` response, even though they
+are configured through GitHub secrets. API keys remain server-side.
+Without the second secret, the dropdown offers only the existing model.
+To remove a previously deployed second model, delete the GitHub secret and
+the Worker's `OPENAI_MODEL_2` secret in Cloudflare; removing a GitHub secret
+alone does not delete an existing Worker secret.
+The Worker rejects model IDs outside this configured list; older clients that
+omit a model continue to use `OPENAI_MODEL`.
 
 ### Troubleshooting generation
 

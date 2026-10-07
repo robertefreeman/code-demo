@@ -2,6 +2,7 @@ import { sanitizeSvg } from "./svg.js";
 
 const form = document.querySelector("#prompt-form");
 const prompt = document.querySelector("#prompt");
+const model = document.querySelector("#model");
 const generate = document.querySelector("#generate");
 const status = document.querySelector("#status");
 const canvas = document.querySelector("#canvas");
@@ -21,7 +22,7 @@ function showStatus(message, error = false) {
 }
 
 function updateButton() {
-  generate.disabled = busy || !token || !prompt.value.trim();
+  generate.disabled = busy || !token || !prompt.value.trim() || model.disabled || !model.value;
   generate.textContent = busy ? "Creating your art…" : "Generate art ↗";
 }
 
@@ -33,12 +34,24 @@ async function initialize() {
     if (!response.ok) throw new Error("Site configuration could not be loaded. Reload the page.");
     config = await response.json();
     if (!config.apiUrl || !config.turnstileSiteKey) {
+      model.replaceChildren(new Option("No models configured", ""));
       showStatus("Generation isn't configured yet. The site owner needs to connect the AI service.");
       return;
     }
     if (new URL(config.apiUrl).protocol !== "https:") {
       throw new Error("The AI service URL must use HTTPS. Contact the site owner.");
     }
+    const modelsResponse = await fetch(new URL("/models", config.apiUrl), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!modelsResponse.ok) throw new Error("Available models couldn't be loaded. Check the API deployment and reload.");
+    const { models } = await modelsResponse.json();
+    if (!Array.isArray(models) || !models.length || models.some(value => typeof value !== "string" || !value.trim())) {
+      throw new Error("The AI service returned an invalid model list. Contact the site owner.");
+    }
+    model.replaceChildren(...models.map(value => new Option(value, value)));
+    model.disabled = false;
     showStatus("Complete the bot check, then describe your idea.");
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -73,6 +86,9 @@ async function initialize() {
     };
     document.head.append(script);
   } catch (error) {
+    model.replaceChildren(new Option("Models unavailable", ""));
+    model.disabled = true;
+    updateButton();
     showStatus(error.message || "The site couldn't load. Reload the page.", true);
   }
 }
@@ -80,12 +96,13 @@ async function initialize() {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const idea = prompt.value.trim();
-  if (busy || !token || !config?.apiUrl || !idea || idea.length > 1000) return;
+  if (busy || !token || !config?.apiUrl || !idea || idea.length > 1000 || model.disabled || !model.value) return;
   busy = true;
   attempted = true;
   const verificationToken = token;
   token = "";
   prompt.disabled = true;
+  model.disabled = true;
   updateButton();
   canvas.setAttribute("aria-busy", "true");
   showStatus("Turning your idea into SVG. This may take a minute.");
@@ -94,7 +111,7 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch(config.apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: idea, token: verificationToken }),
+      body: JSON.stringify({ prompt: idea, token: verificationToken, model: model.value }),
       signal: AbortSignal.timeout(100_000),
     });
     let result;
@@ -130,6 +147,7 @@ form.addEventListener("submit", async (event) => {
   } finally {
     busy = false;
     prompt.disabled = false;
+    model.disabled = false;
     canvas.setAttribute("aria-busy", "false");
     updateButton();
     if (widget !== undefined) window.turnstile.reset(widget);
