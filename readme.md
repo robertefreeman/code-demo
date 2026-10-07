@@ -106,6 +106,21 @@ page's security policy to work around an upstream API error.
 
 ## Local development
 
+### Review exercise branch
+
+This branch is an intentional API connection review exercise, **not a release
+candidate. Do not merge or deploy it.** It extracts browser generation requests
+into `site/api.js`, separating JSON transport and response errors from the
+form's verification and artwork lifecycle. Related formatting changes make the
+client's control flow easier to scan.
+
+The refactor deliberately contains non-security logic defects for code review.
+Existing tests remain unchanged; failures must be reported rather than hidden.
+Use mocked responses for this exercise, not a deployed generation endpoint.
+Requests are still single-attempt, without automatic generation retries.
+The Worker's security protections and 16,000-token generation budget are
+unchanged.
+
 Requires Node.js 22 or newer.
 
 ```sh
