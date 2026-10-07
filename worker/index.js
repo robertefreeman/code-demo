@@ -1,4 +1,4 @@
-const SYSTEM_PROMPT = `Create original SVG artwork from the user's description.
+export const SYSTEM_PROMPT = `Create original SVG artwork from the user's description.
 Return ONLY one complete SVG, with xmlns="http://www.w3.org/2000/svg" and a valid
 viewBox (prefer 0 0 640 640). Use static vector shapes and presentation attributes.
 Allowed elements: svg, g, defs, title, desc, rect, circle, ellipse, line, polyline,
