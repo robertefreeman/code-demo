@@ -26,6 +26,10 @@
           <label for="prompt">Your idea</label>
           <textarea id="prompt" name="prompt" maxlength="1000" rows="5" placeholder="A tiny cabin beneath a starry sky, drawn with simple shapes and deep blue colors." required aria-describedby="prompt-hint"></textarea>
           <p id="prompt-hint" class="hint">Try a subject, a style, and a color palette.</p>
+          <label for="model">Model</label>
+          <select id="model" name="model" disabled required>
+            <option value="">Loading models…</option>
+          </select>
           <button id="generate" class="primary-button" type="submit" disabled>Generate art <span aria-hidden="true">↗</span></button>
           <div id="verification" aria-label="Bot verification"></div>
           <p id="status" class="status" role="status" aria-live="polite">Loading site configuration…</p>

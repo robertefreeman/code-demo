@@ -40,10 +40,12 @@ jobs:
           secrets: |
             OPENAI_BASE_URL
             OPENAI_MODEL
+            ${{ secrets.OPENAI_MODEL_2 != '' && 'OPENAI_MODEL_2' || '' }}
             OPENAI_API_KEY
             TURNSTILE_SECRET_KEY
         env:
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          OPENAI_MODEL_2: ${{ secrets.OPENAI_MODEL_2 }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}

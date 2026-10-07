@@ -68,6 +68,59 @@ test("allows preflight only for the configured origin", async () => {
   assert.equal(denied.headers.get("Access-Control-Allow-Origin"), null);
 });
 
+function modelsRequest(options = {}) {
+  return new Request("https://api.example.com/models", { headers: { Origin: ORIGIN }, ...options });
+}
+
+test("lists configured models without calling providers or revealing credentials", async (t) => {
+  const calls = upstream(t);
+  const response = await worker.fetch(modelsRequest(), environment({ OPENAI_MODEL_2: "second-model" }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { models: ["demo-model", "second-model"] });
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), ORIGIN);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.equal(calls.length, 0);
+});
+
+test("lists one model when the second is absent, empty, or a duplicate", async () => {
+  for (const second of [undefined, "", "  ", " demo-model "]) {
+    const response = await worker.fetch(modelsRequest(), environment({ OPENAI_MODEL_2: second }));
+    assert.deepEqual(await response.json(), { models: ["demo-model"] });
+  }
+  assert.equal((await worker.fetch(modelsRequest(), environment({ OPENAI_MODEL: "" }))).status, 503);
+});
+
+test("model listing enforces the allowed origin and GET method", async () => {
+  const denied = await worker.fetch(modelsRequest({ headers: { Origin: "https://evil.example" } }), environment());
+  assert.equal(denied.status, 403);
+  assert.equal(denied.headers.get("Access-Control-Allow-Origin"), null);
+  const wrongMethod = await worker.fetch(modelsRequest({ method: "POST" }), environment());
+  assert.equal(wrongMethod.status, 405);
+  assert.equal(wrongMethod.headers.get("Allow"), "GET, OPTIONS");
+  const preflight = await worker.fetch(modelsRequest({ method: "OPTIONS" }), environment());
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("Access-Control-Allow-Methods"), "GET");
+});
+
+for (const model of ["demo-model", "second-model"]) {
+  test(`generates SVG with the selected ${model}`, async (t) => {
+    const calls = upstream(t);
+    const response = await worker.fetch(request({ prompt: "A tree", token: "token", model }), environment({ OPENAI_MODEL_2: "second-model" }));
+    assert.equal(response.status, 200);
+    assert.equal(JSON.parse(calls[1].options.body).model, model);
+  });
+}
+
+test("rejects unconfigured models and invalid model types before bot verification", async (t) => {
+  const calls = upstream(t);
+  for (const model of ["unknown-model", "second-model", "", null, 1, {}, ["demo-model"]]) {
+    const response = await worker.fetch(request({ prompt: "A tree", token: "token", model }), environment());
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /Choose an available model/);
+  }
+  assert.equal(calls.length, 0);
+});
+
 test("rejects incorrect paths and HTTP methods", async () => {
   const response = await worker.fetch(new Request("https://api.example.com/", { headers: { Origin: ORIGIN } }), environment());
   assert.equal(response.status, 404);
