@@ -41,6 +41,13 @@ and a setup message rather than pretending to generate art.
    Run **Actions → Deploy site → Run workflow**. Subsequent pushes to `main`
    redeploy the page. Rerun **Deploy API** after changing Worker code or secrets.
 
+Pull requests to `main` run the required `validate` check: Worker tests, browser
+tests, the production site build using public repository variables, and Pages
+artifact packaging. Publishing runs only on `main`, after validation succeeds,
+and deploys that same artifact. Validation catches test, build, and packaging
+errors before merge; it cannot verify GitHub Pages permissions or publishing
+availability without an actual deployment.
+
 The host must be reachable from Cloudflare over HTTPS. Requests go to
 `<OPENAI_BASE_URL>/chat/completions` using bearer authentication, `model`,
 `messages`, `stream: false`, and `max_tokens: 6000`. The response must contain
