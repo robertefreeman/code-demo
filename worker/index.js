@@ -17,6 +17,20 @@ class HttpError extends Error {
   }
 }
 
+export function extractSvg(source) {
+  if (typeof source !== "string") throw new HttpError(502, "The AI returned no artwork. Try generating again.");
+  if (source.length > 100_000 || /<!DOCTYPE|<!ENTITY|<\?/i.test(source)) {
+    throw new HttpError(502, "The AI returned invalid SVG. Try generating again.");
+  }
+  const openings = [...source.matchAll(/<svg(?=[\s>])/g)];
+  const closings = [...source.matchAll(/<\/svg\s*>/g)];
+  if (openings.length !== 1 || closings.length !== 1 || closings[0].index <= openings[0].index) {
+    throw new HttpError(502, "The AI must return one complete SVG document. Try generating again.");
+  }
+  // Models sometimes add prose or Markdown. Extract one document, never repair its markup.
+  return source.slice(openings[0].index, closings[0].index + closings[0][0].length);
+}
+
 async function readLimited(response, limit) {
   if (!response.body) return "";
   const reader = response.body.getReader();
@@ -160,12 +174,7 @@ export default {
       }, 85_000);
       const choice = result?.choices?.[0];
       if (choice?.finish_reason === "length") throw new HttpError(502, "The artwork was too complex. Try a simpler prompt.");
-      let svg = choice?.message?.content;
-      if (typeof svg !== "string") throw new HttpError(502, "The AI returned no artwork. Try generating again.");
-      svg = svg.trim().replace(/^```(?:svg|xml)?\s*\n([\s\S]*?)\n```$/i, "$1").trim();
-      if (svg.length > 100_000 || !/^<svg[\s>]/.test(svg) || !/<\/svg>$/.test(svg) || /<!DOCTYPE|<!ENTITY|<\?/i.test(svg)) {
-        throw new HttpError(502, "The AI returned invalid SVG. Try generating again.");
-      }
+      const svg = extractSvg(choice?.message?.content);
       // Untrusted text travels as JSON; the browser validates and rebuilds it before rendering.
       return json({ svg });
     } catch (error) {

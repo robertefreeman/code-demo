@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker from "../worker/index.js";
+import worker, { extractSvg } from "../worker/index.js";
 
 const ORIGIN = "https://robertefreeman.github.io";
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><circle cx="320" cy="320" r="200" fill="blue"/></svg>';
@@ -120,6 +120,39 @@ test("accepts fenced SVG, but rejects oversized, non-SVG, and truncated output",
   upstream(t, { svg: "```svg\n" + SVG + "\n```" });
   const response = await worker.fetch(request(), environment());
   assert.equal((await response.json()).svg, SVG);
+});
+
+test("extracts one SVG from explanatory text and Markdown", () => {
+  for (const source of [
+    SVG,
+    `Here is a picture:\n${SVG}\nHope you like it!`,
+    `Here is your art:\n\`\`\`html\n${SVG}\n\`\`\`\nA blue circle.`,
+    `\`\`\`SVG\r\n${SVG}\r\n\`\`\``,
+  ]) {
+    assert.equal(extractSvg(source), SVG);
+  }
+});
+
+test("does not repair broken markup or accept multiple SVG documents", () => {
+  for (const source of [
+    `${SVG}\n${SVG}`,
+    SVG.replace("</svg>", ""),
+    `<!DOCTYPE svg>${SVG}`,
+    `<?xml version="1.0"?>${SVG}`,
+    `${SVG}<!ENTITY unsafe SYSTEM "https://evil.example">`,
+  ]) {
+    assert.throws(() => extractSvg(source), error => error.status === 502);
+  }
+  // The browser, not a regex, rejects malformed markup inside a complete root.
+  const malformed = SVG.replace("</svg>", "<broken></svg>");
+  assert.equal(extractSvg(malformed), malformed);
+});
+
+test("returns the extracted document, not model commentary", async (t) => {
+  upstream(t, { svg: `Here is your cabin:\n${SVG}\nEnjoy!` });
+  const response = await worker.fetch(request(), environment());
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { svg: SVG });
 });
 
 for (const output of [

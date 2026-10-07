@@ -88,6 +88,9 @@ page's security policy to work around an upstream API error.
   it as a blob-backed image or allowing download. Scripts, event handlers,
   external resources, embedded HTML, CSS, and animations are rejected.
   Complex model output may need a simpler prompt.
+- The proxy accepts one complete SVG surrounded by model commentary or Markdown;
+  it extracts that document without repairing markup. Multiple or incomplete
+  SVG documents, XML declarations, and entity declarations are rejected.
 - Prompts are sent to Cloudflare for processing and to your configured LLM
   provider for generation. The app has no gallery or saved prompt history and
   does not log prompts or keys. Provider retention policies still apply.

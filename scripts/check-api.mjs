@@ -1,4 +1,6 @@
-import { SYSTEM_PROMPT } from "../worker/index.js";
+import { SYSTEM_PROMPT, extractSvg } from "../worker/index.js";
+import { readFile } from "node:fs/promises";
+import { chromium } from "@playwright/test";
 
 const prompt = process.env.DIAGNOSTIC_PROMPT || "A single blue circle centered on a white background. Use only SVG.";
 if (!prompt.trim() || prompt.length > 1000) throw new Error("Use a diagnostic prompt between 1 and 1,000 characters.");
@@ -49,6 +51,33 @@ try {
     hasDoctypeOrEntity: /<!DOCTYPE|<!ENTITY/i.test(normalized),
     hasProcessingInstruction: /<\?/.test(normalized),
   }, null, 2));
+  if (choice?.finish_reason === "length") throw new Error("The model truncated its output.");
+  const svg = extractSvg(content);
+  const moduleSource = await readFile(new URL("../site/svg.js", import.meta.url), "utf8");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const validation = await page.evaluate(async ({ source, svg }) => {
+      const { sanitizeSvg } = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+      let url;
+      try {
+        const safe = sanitizeSvg(svg);
+        url = URL.createObjectURL(new Blob([safe], { type: "image/svg+xml" }));
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error.message };
+      } finally {
+        if (url) URL.revokeObjectURL(url);
+      }
+    }, { source: moduleSource, svg });
+    if (!validation.ok) throw new Error(validation.error);
+    console.log("SVG extraction, browser sanitization, and image rendering: passed.");
+  } finally {
+    await browser.close();
+  }
 } catch (error) {
   // Do not print fetch exceptions: their messages can include private endpoint details.
   console.error(error instanceof TypeError || error.name === "TimeoutError" ? `API diagnostic failed: ${error.name}` : error.message);
