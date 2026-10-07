@@ -1,0 +1,17 @@
+{
+  "name": "code-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/worker.test.mjs",
+    "test:browser": "playwright test",
+    "deploy:worker": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "wrangler": "^4.36.0"
+  }
+}

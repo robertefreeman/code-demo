@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- A quiet, single-screen workspace: prompt on the left, artwork on the right.
+     Cool paper, dark ink, one blue action. The art, not the interface, leads. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Describe an idea and turn it into downloadable SVG art.">
+    <meta name="color-scheme" content="light">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' blob:; connect-src 'self' https:; frame-src https://challenges.cloudflare.com; base-uri 'none'; object-src 'none'; form-action 'none'">
+    <title>SVG Studio · code-demo</title>
+    <link rel="icon" href="sample.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="./">SVG Studio<span> / code-demo</span></a>
+      <a class="source-link" href="https://github.com/robertefreeman/code-demo">Source on GitHub ↗</a>
+    </header>
+    <main>
+      <section class="controls" aria-labelledby="heading">
+        <h1 id="heading">A few words.<br> A new picture.</h1>
+        <p class="intro">Describe what you imagine. Make it into SVG art you can keep.</p>
+        <form id="prompt-form">
+          <label for="prompt">Your idea</label>
+          <textarea id="prompt" name="prompt" maxlength="1000" rows="5" placeholder="A tiny cabin beneath a starry sky, drawn with simple shapes and deep blue colors." required aria-describedby="prompt-hint"></textarea>
+          <p id="prompt-hint" class="hint">Try a subject, a style, and a color palette.</p>
+          <div id="verification" aria-label="Bot verification"></div>
+          <button id="generate" class="primary-button" type="submit" disabled>Generate art <span aria-hidden="true">↗</span></button>
+          <p id="status" class="status" role="status" aria-live="polite">Loading site configuration…</p>
+        </form>
+        <noscript><p>Enable JavaScript to generate and download art.</p></noscript>
+      </section>
+      <section class="artwork" aria-labelledby="art-heading">
+        <div class="art-toolbar">
+          <h2 id="art-heading">Your canvas</h2>
+          <a id="download" class="download" hidden download="svg-studio.svg">Download SVG ↓</a>
+        </div>
+        <div id="canvas" class="canvas" aria-busy="false">
+          <img id="art" src="sample.svg" alt="Example artwork: a geometric sun above blue hills." width="640" height="640">
+        </div>
+        <p id="caption" class="caption">An example to get you started. Your art will appear here.</p>
+      </section>
+    </main>
+    <footer>Made from words. Yours to keep.<span>Prompts are sent to the site's AI provider.</span></footer>
+  </body>
+</html>
