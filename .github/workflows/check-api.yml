@@ -1,6 +1,12 @@
 name: Check AI response
 on:
   workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Non-private diagnostic prompt (workflow inputs are visible in GitHub)"
+        required: true
+        type: string
+        default: "A single blue circle centered on a white background. Use only SVG."
 permissions:
   contents: read
 jobs:
@@ -14,6 +20,7 @@ jobs:
       - name: Inspect one diagnostic response without logging its text
         run: node scripts/check-api.mjs
         env:
+          DIAGNOSTIC_PROMPT: ${{ inputs.prompt }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

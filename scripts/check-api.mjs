@@ -1,5 +1,7 @@
 import { SYSTEM_PROMPT } from "../worker/index.js";
 
+const prompt = process.env.DIAGNOSTIC_PROMPT || "A single blue circle centered on a white background. Use only SVG.";
+if (!prompt.trim() || prompt.length > 1000) throw new Error("Use a diagnostic prompt between 1 and 1,000 characters.");
 for (const name of ["OPENAI_BASE_URL", "OPENAI_MODEL", "OPENAI_API_KEY"]) {
   if (!process.env[name]) throw new Error(`Missing secret: ${name}`);
 }
@@ -18,7 +20,7 @@ try {
       max_tokens: 6000,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: "A single blue circle centered on a white background. Use only SVG." },
+        { role: "user", content: prompt.trim() },
       ],
     }),
     signal: AbortSignal.timeout(85_000),
