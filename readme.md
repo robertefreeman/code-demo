@@ -50,9 +50,11 @@ availability without an actual deployment.
 
 The host must be reachable from Cloudflare over HTTPS. Requests go to
 `<OPENAI_BASE_URL>/chat/completions` using bearer authentication, `model`,
-`messages`, `stream: false`, and `max_tokens: 6000`. The response must contain
+`messages`, `stream: false`, and `max_tokens: 16000`. The response must contain
 SVG text in `choices[0].message.content`. It is not a file-upload endpoint;
 models using a different protocol will need a small adapter.
+The configured model must support this token budget. Larger generations can
+cost more; the existing timeouts and SVG size and element limits still apply.
 
 ### Troubleshooting generation
 
