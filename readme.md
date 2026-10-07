@@ -1,4 +1,4 @@
-# code-demo — Robert's SVG Studio
+# code-demo — SVG Studio
 
 A small SVG art generator: describe an idea, generate a picture, and download
 the SVG. Plain HTML, CSS, and JavaScript on GitHub Pages; one Cloudflare Worker
@@ -40,6 +40,13 @@ and a setup message rather than pretending to generate art.
 6. Set **Settings → Pages → Source** to **GitHub Actions**, if not already set.
    Run **Actions → Deploy site → Run workflow**. Subsequent pushes to `main`
    redeploy the page. Rerun **Deploy API** after changing Worker code or secrets.
+
+Pull requests to `main` run the required `validate` check: Worker tests, browser
+tests, the production site build using public repository variables, and Pages
+artifact packaging. Publishing runs only on `main`, after validation succeeds,
+and deploys that same artifact. Validation catches test, build, and packaging
+errors before merge; it cannot verify GitHub Pages permissions or publishing
+availability without an actual deployment.
 
 The host must be reachable from Cloudflare over HTTPS. Requests go to
 `<OPENAI_BASE_URL>/chat/completions` using bearer authentication, `model`,

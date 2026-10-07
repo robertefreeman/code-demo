@@ -17,8 +17,8 @@ async function configure(page) {
 
 test("unconfigured site shows an honest setup state", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Robert's SVG Studio");
-  await expect(page.locator(".wordmark")).toContainText("Robert's SVG Studio");
+  await expect(page).toHaveTitle("SVG Studio");
+  await expect(page.locator(".wordmark")).toHaveText("SVG Studio / code-demo");
   await expect(page.locator("#status")).toContainText("isn't configured yet");
   await expect(page.locator("#generate")).toBeDisabled();
   await expect(page.locator("#art")).toBeVisible();
@@ -41,7 +41,7 @@ test("generates, displays, and downloads sanitized SVG", async ({ page }) => {
   expect(submitted).toEqual({ prompt: "A blue square", token: "verified-token" });
   const download = page.waitForEvent("download");
   await page.locator("#download").click();
-  expect((await download).suggestedFilename()).toBe("roberts-svg-studio.svg");
+  expect((await download).suggestedFilename()).toBe("svg-studio.svg");
   await expect(page.locator("#generate")).toBeEnabled();
 });
 
