@@ -1,4 +1,4 @@
-# code-demo — SVG Studio
+# code-demo — Bob's SVG Studio
 
 A small SVG art generator: describe an idea, generate a picture, and download
 the SVG. Plain HTML, CSS, and JavaScript on GitHub Pages; one Cloudflare Worker

@@ -26,5 +26,5 @@ const server = createServer(async (request, response) => {
   }
 });
 server.listen(Number(process.env.PORT || 4173), "127.0.0.1", () => {
-  console.log(`SVG Studio: http://127.0.0.1:${server.address().port}`);
+  console.log(`Bob's SVG Studio: http://127.0.0.1:${server.address().port}`);
 });
