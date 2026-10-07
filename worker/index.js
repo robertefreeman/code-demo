@@ -45,23 +45,36 @@ async function readLimited(response, limit) {
   return new TextDecoder().decode(combined);
 }
 
-async function fetchJson(url, options, timeout, limit = 1_000_000) {
+async function fetchJson(url, options, timeout, limit = 1_000_000, service = "AI service") {
   try {
-    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeout), redirect: "error" });
+    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeout), redirect: "manual" });
     if (!response.ok) {
       await response.body?.cancel();
-      console.error("Upstream HTTP failure", response.status);
-      throw new HttpError(502, "The AI service or bot check is unavailable. Try again later.");
+      console.error("Upstream HTTP failure", service, response.status);
+      if (response.status >= 300 && response.status < 400) {
+        throw new HttpError(502, `${service} redirected the request (HTTP ${response.status}). The site owner needs to check its endpoint URL.`);
+      }
+      if (response.status === 401 || response.status === 403) {
+        throw new HttpError(502, `${service} rejected authentication (HTTP ${response.status}). The site owner needs to check its credentials.`);
+      }
+      throw new HttpError(502, `${service} rejected the request (HTTP ${response.status}). The site owner needs to check its configuration.`);
     }
     const body = await readLimited(response, limit);
-    return JSON.parse(body);
+    try {
+      return JSON.parse(body);
+    } catch {
+      // Never log provider bodies: they can contain prompts, keys, or private details.
+      console.error("Upstream returned non-JSON response", service);
+      throw new HttpError(502, `${service} returned a non-JSON response. The site owner needs to check its API URL and response format.`);
+    }
   } catch (error) {
     if (error instanceof HttpError) throw error;
     if (error.name === "TimeoutError" || error.name === "AbortError") {
-      throw new HttpError(504, "Generation took too long. Try a simpler prompt.");
+      console.error("Upstream timed out", service);
+      throw new HttpError(504, `${service} timed out. Try again or use a simpler prompt.`);
     }
-    console.error("Upstream request failed", error.name);
-    throw new HttpError(502, "The AI service or bot check returned an invalid response. Try again later.");
+    console.error("Upstream connection failed", service, error.name);
+    throw new HttpError(502, `Could not connect to the ${service.toLowerCase()}. The site owner needs to check its reachability from Cloudflare.`);
   }
 }
 
@@ -116,7 +129,7 @@ export default {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: body.token, remoteip: ip }),
-      }, 10_000, 16_384);
+      }, 10_000, 16_384, "Bot verification service");
       if (verification?.success !== true || verification.hostname !== new URL(env.ALLOWED_ORIGIN).hostname || verification.action !== "generate") {
         throw new HttpError(403, "The bot check failed or expired. Complete it again.");
       }

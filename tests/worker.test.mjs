@@ -32,8 +32,10 @@ function upstream(t, overrides = {}) {
   t.mock.method(globalThis, "fetch", async (url, options) => {
     calls.push({ url, options });
     if (url.includes("siteverify")) {
+      if (overrides.verificationRaw !== undefined) return new Response(overrides.verificationRaw);
       return Response.json({ success: true, hostname: new URL(ORIGIN).hostname, action: "generate", ...overrides.verification });
     }
+    if (overrides.httpStatus) return new Response("private upstream details", { status: overrides.httpStatus });
     if (overrides.failure) return new Response("private upstream details", { status: 401 });
     if (overrides.raw) return new Response(overrides.raw);
     return Response.json({ choices: [{ finish_reason: overrides.finish || "stop", message: { content: overrides.svg ?? SVG } }] });
@@ -140,6 +142,7 @@ test("does not forward upstream error details or secrets", async (t) => {
   assert.equal(response.status, 502);
   const body = await response.text();
   assert.doesNotMatch(body, /private upstream details|test-key/);
+  assert.match(body, /AI service rejected authentication \(HTTP 401\)/);
 });
 
 test("aborted upstream requests report a timeout", async (t) => {
@@ -154,3 +157,47 @@ test("invalid API configuration fails clearly", async (t) => {
   }
   assert.ok(calls.every(call => call.url.includes("siteverify")));
 });
+
+test("identifies a non-JSON bot-verification response without exposing its body", async (t) => {
+  const calls = upstream(t, { verificationRaw: "<html>private details</html>" });
+  const response = await worker.fetch(request(), environment());
+  assert.equal(response.status, 502);
+  const body = await response.text();
+  assert.match(body, /Bot verification service returned a non-JSON response/);
+  assert.doesNotMatch(body, /private details/);
+  assert.equal(calls.length, 1);
+});
+
+test("identifies a non-JSON AI response", async (t) => {
+  upstream(t, { raw: "data: streaming instead of JSON" });
+  const response = await worker.fetch(request(), environment());
+  assert.equal(response.status, 502);
+  assert.match((await response.json()).error, /AI service returned a non-JSON response/);
+});
+
+test("identifies an AI connection failure separately from bot verification", async (t) => {
+  const original = upstream(t);
+  const mockedFetch = globalThis.fetch;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    if (url.includes("siteverify")) return mockedFetch(url, options);
+    throw new TypeError("Private connection details");
+  });
+  const response = await worker.fetch(request(), environment());
+  assert.equal(response.status, 502);
+  const body = await response.text();
+  assert.match(body, /Could not connect to the ai service/);
+  assert.doesNotMatch(body, /Private connection details/);
+  assert.equal(original.length, 1);
+});
+
+for (const httpStatus of [307, 400, 404, 429, 503]) {
+  test(`reports upstream HTTP ${httpStatus} safely`, async (t) => {
+    const calls = upstream(t, { httpStatus });
+    const response = await worker.fetch(request(), environment());
+    assert.equal(response.status, 502);
+    const body = await response.text();
+    assert.match(body, new RegExp(`HTTP ${httpStatus}`));
+    assert.doesNotMatch(body, /private upstream details/);
+    assert.equal(calls[1].options.redirect, "manual");
+  });
+}

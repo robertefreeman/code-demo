@@ -47,6 +47,30 @@ The host must be reachable from Cloudflare over HTTPS. Requests go to
 SVG text in `choices[0].message.content`. It is not a file-upload endpoint;
 models using a different protocol will need a small adapter.
 
+### Troubleshooting generation
+
+The message below the Generate button identifies the failing service:
+**AI service** or **Bot verification service**. For HTTP failures it includes
+the upstream status, but never the provider's response body or credentials.
+Cloudflare's Worker logs contain the same service label and safe error category.
+
+- **Rejected authentication (401/403):** check the corresponding secret and
+  rerun **Deploy API**. Editing a GitHub secret does not update the deployed
+  Worker until that workflow runs.
+- **Redirected request:** use the final API base URL, not a login page or
+  redirecting endpoint. The proxy will not forward credentials through redirects.
+- **Non-JSON response:** the endpoint must return a JSON chat-completions
+  response, not HTML or a streaming response.
+- **Could not connect:** the host must accept HTTPS connections from Cloudflare,
+  with valid TLS and public DNS. Check host firewall and access restrictions.
+- **Invalid SVG:** try a simpler prompt; the model must follow the static SVG
+  output format.
+
+The page uses system fonts and allows Turnstile's documented script and iframe
+origins. Font, GPU-adapter, and sandbox warnings inside a Turnstile frame do not
+by themselves explain an API 502. Do not disable bot verification or relax the
+page's security policy to work around an upstream API error.
+
 ## Safety and limits
 
 - The API key lives in the Worker, not the browser. GitHub Actions installs it
